@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "out")
 CHUNKS = os.path.join(OUT, "chunks.jsonl")
 # 模型只存一份，放在网页目录下，离线脚本与浏览器共用
-MODEL_DIR = os.path.join(ROOT, "web", "model")
+MODEL_DIR = os.path.join(ROOT, "model")
 
 K1, B = 1.5, 0.75
 MAX_LEN = 512

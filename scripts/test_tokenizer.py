@@ -32,7 +32,7 @@ TESTS = [
 
 
 def main():
-    tok = Tokenizer.from_file(os.path.join(ROOT, "web", "model", "tokenizer.json"))
+    tok = Tokenizer.from_file(os.path.join(ROOT, "model", "tokenizer.json"))
     tok.enable_truncation(max_length=512)
     out = []
     for t in TESTS:

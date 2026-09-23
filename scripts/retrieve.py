@@ -20,7 +20,7 @@ from query_rewrite import expand_query  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "out")
-MODEL_DIR = os.path.join(ROOT, "web", "model")
+MODEL_DIR = os.path.join(ROOT, "model")
 
 
 def minmax(d):

@@ -9,7 +9,7 @@ let ort = null;
 /** onnxruntime-web 只在真正启用语义检索时动态加载，首屏不必下载 14MB wasm */
 async function loadOrt(wasmPaths) {
   if (!ort) {
-    ort = await import("../vendor/ort/ort.min.mjs");
+    ort = await import("../vendor/ort/ort.wasm.min.mjs");
     ort.env.wasm.wasmPaths = wasmPaths;
     ort.env.wasm.numThreads = 1; // 静态托管下没有 COOP/COEP，单线程最稳
     ort.env.logLevel = "error";

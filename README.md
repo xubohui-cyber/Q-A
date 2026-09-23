@@ -105,8 +105,13 @@
 - 支持检索模式切换（混合 / 仅 BM25 / 仅向量）、Top-K、α 权重、公司 / 报告期过滤、跨公司全景对比表；
 - 三个标签页：**问答**、**10 题评测记录**、**方法与数据**。
 
-> 一致性校验：浏览器端分词器与离线 Python 端**逐 token 一致**（20 条测试），BM25 打分排序**逐条一致**（10 条查询），
-> 网页检索结果与离线评测 **Top-K 完全一致**（8/8 题）。校验脚本：`scripts/test_tokenizer.*`、`scripts/test_retrieval_parity.*`、`scripts/web_engine_test.mjs`。
+> 一致性校验（都在仓库里可复跑）：
+> ① 浏览器端分词器与离线 Python 端**逐 token 一致**（20 条测试）；
+> ② BM25 打分排序**逐条一致**（10 条查询）；
+> ③ 网页端检索结果与离线评测 **Top-K 完全一致**（8/8 题）；
+> ④ 浏览器内 onnxruntime-web 跑出的查询向量与 Python 端**逐位相同**（余弦 1.000000、最大分量差 0）。
+>
+> 校验脚本：`scripts/test_tokenizer.*`、`scripts/test_retrieval_parity.*`、`scripts/web_engine_test.mjs`。
 
 ## 五、目录结构
 
@@ -170,6 +175,10 @@ python -m http.server 8000                # 11) 本地预览 http://127.0.0.1:80
 - **PDF 侧残余噪声**：个别表格跨页被拆、单元格换行导致表头与正文错位（如口子窖风险小节标题）；
   图像类图表（饼图/柱状图）中的数字无法解析。
 - **首屏体积**：BM25 模式约 22MB、启用语义检索再加约 43MB；后续可换更小的中文向量模型或做索引裁剪。
+
+> 语义检索需要下载 onnxruntime-web 的 wasm（约 13.6MB）与 bge-small-zh-v1.5 int8 模型（约 24MB，超过 jsDelivr 单文件 20MB 限制，
+> 因此默认走同源文件）。若 GitHub Pages 访问慢，可在页面「检索设置 → 语义模型基址」里填一个自己的镜像地址
+> （需包含 `tokenizer.json` 与 `onnx/model_quantized.onnx`）。
 
 ---
 

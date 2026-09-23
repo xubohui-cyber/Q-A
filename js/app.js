@@ -93,6 +93,15 @@ async function enableDense() {
   const btn = $("#enableDense");
   btn.disabled = true;
   try {
+    const customBase = ($("#modelBase")?.value || "").trim().replace(/\/$/, "");
+    if (customBase) {
+      rag.dense.override = {
+        label: "自定义",
+        onnx: `${customBase}/onnx/model_quantized.onnx`,
+        tokenizer: `${customBase}/tokenizer.json`,
+        wasmPaths: new URL("../vendor/ort/", import.meta.url).href,
+      };
+    }
     await rag.loadDense(({ stage, ratio }) => {
       if (stage === "vectors") progress("加载向量索引（8.6MB）…", 0.1 + (ratio || 0) * 0.2);
       else if (stage === "model") progress(`加载语义模型（约 24MB）… ${Math.round((ratio || 0) * 100)}%`, 0.3 + (ratio || 0) * 0.7);
@@ -399,7 +408,9 @@ llmPanel.innerHTML = `
   <label class="check"><input id="llmOn" type="checkbox"> 用大模型生成答案</label>
   <label>API Base<input id="llmBase" placeholder="https://api.openai.com/v1"></label>
   <label>API Key<input id="llmKey" type="password" placeholder="sk-..."></label>
-  <label>模型<input id="llmModel" placeholder="gpt-4o-mini / deepseek-chat ..."></label>`;
+  <label>模型<input id="llmModel" placeholder="gpt-4o-mini / deepseek-chat ..."></label>
+  <label>语义模型基址（可选，留空用仓库自带同源文件）
+    <input id="modelBase" placeholder="https://你的镜像/...  需含 tokenizer.json 与 onnx/model_quantized.onnx"></label>`;
 $(".adv").appendChild(llmPanel);
 const cfg = llmCfg();
 $("#llmOn").checked = cfg.on;
