@@ -1,0 +1,6 @@
+{
+  "name": "baijiu-rag-web",
+  "private": true,
+  "type": "module",
+  "description": "白酒行业年报 RAG 问答页面前端（纯静态，浏览器内检索）"
+}

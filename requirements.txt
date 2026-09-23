@@ -1,0 +1,7 @@
+# 离线管线依赖（Python 3.12）
+# 说明：解析用 PyMuPDF；向量化用 onnxruntime + tokenizers 直接跑 bge-small-zh-v1.5(int8 ONNX)
+pymupdf>=1.24
+pdfplumber>=0.11      # 备用：需要更细的表格线分析时使用
+requests>=2.31
+numpy>=1.26
+# 网页端不需要安装任何东西：BM25 与向量检索都在浏览器里跑，运行时文件已在 web/ 下

@@ -1,0 +1,16 @@
+# 原始 PDF 与解析出的全文（体积大，用 scripts/download_reports.py 可一键重下）
+data/raw_pdf/
+data/text/
+# 中间产物（chunks.jsonl / bm25.pkl / dense.npy 等，可由脚本重建）
+data/out/chunks.jsonl
+data/out/bm25.pkl
+data/out/dense.npy
+data/out/*.json
+!data/manifest.json
+# 本地环境与缓存
+work/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+:memory:.ses

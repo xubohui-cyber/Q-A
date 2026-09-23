@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>白酒行业年报问答 · RAG Demo（16 家上市公司 / 48 份年报半年报）</title>
+<meta name="description" content="从巨潮资讯下载 16 家白酒上市公司年报与半年报，表格按行列还原、按公司/章节/页码切块，BM25 + 向量混合检索，答案带出处。">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>白酒行业年报问答</h1>
+      <p class="sub">16 家白酒上市公司 · 48 份年报 / 半年报全文 · 表格按行列还原 · BM25 + 向量混合检索 · 答案带出处</p>
+    </div>
+    <div class="stats" id="stats">
+      <div class="stat"><b id="s-companies">–</b><span>家公司</span></div>
+      <div class="stat"><b id="s-reports">–</b><span>份报告</span></div>
+      <div class="stat"><b id="s-pages">–</b><span>页原文</span></div>
+      <div class="stat"><b id="s-chunks">–</b><span>个文本块</span></div>
+      <div class="stat"><b id="s-tables">–</b><span>张表格</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="loadbar" id="loadbar"><div class="loadbar-inner"><span id="loadtext">正在加载索引…</span><div class="bar"><i id="barfill"></i></div></div></div>
+
+<nav class="tabs wrap">
+  <button class="tab active" data-tab="qa">问答</button>
+  <button class="tab" data-tab="eval">10 题评测记录</button>
+  <button class="tab" data-tab="method">方法与数据</button>
+</nav>
+
+<main class="wrap">
+
+  <!-- ========== 问答 ========== -->
+  <section class="panel active" id="tab-qa">
+    <div class="searchbox">
+      <div class="searchrow">
+        <input id="q" type="search" placeholder="例如：贵州茅台 2025 年营业收入和归母净利润是多少？" autocomplete="off">
+        <button id="go" class="primary">提问</button>
+      </div>
+      <div class="chips" id="examples"></div>
+      <details class="adv">
+        <summary>检索设置</summary>
+        <div class="advgrid">
+          <label>检索模式
+            <select id="mode">
+              <option value="hybrid">混合（BM25 + 向量）</option>
+              <option value="bm25">仅 BM25 关键词</option>
+              <option value="dense">仅向量语义</option>
+            </select>
+          </label>
+          <label>Top-K <input id="topk" type="number" min="3" max="30" value="8"></label>
+          <label>向量权重 α <input id="alpha" type="range" min="0" max="1" step="0.05" value="0.5"><span id="alphaval">0.50</span></label>
+          <label>公司
+            <select id="company"><option value="">自动识别</option></select>
+          </label>
+          <label>报告期
+            <select id="period">
+              <option value="">自动识别</option>
+              <option value="2025A">2025 年报</option>
+              <option value="2024A">2024 年报</option>
+              <option value="H1">2026 半年报</option>
+            </select>
+          </label>
+          <label class="check"><input id="panorama" type="checkbox"> 跨公司全景模式（每家公司各取证据）</label>
+        </div>
+      </details>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="answerArea"></div>
+    <div id="evidence"></div>
+  </section>
+
+  <!-- ========== 评测 ========== -->
+  <section class="panel" id="tab-eval">
+    <div class="card">
+      <h2>10 道题逐题记录</h2>
+      <p class="muted">每题记录：召回了哪些块（公司 / 报告 / 章节 / 页码 / 排名）、是否召回关键证据、答案对错与错误原因。
+      评测脚本见仓库 <code>scripts/eval_questions.py</code>，原始 JSON 见 <code>web/data/eval.json</code>。</p>
+      <div id="evalSummary" class="evalsummary"></div>
+    </div>
+    <div id="evalList"></div>
+  </section>
+
+  <!-- ========== 方法 ========== -->
+  <section class="panel" id="tab-method">
+    <div class="card prose" id="methodBody"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>数据来源：巨潮资讯网（cninfo.com.cn）年度报告 / 半年度报告全文；上交所 sse.com.cn、深交所 szse.cn 披露。
+    本项目仅用于课程作业与检索技术演示，不构成投资建议。</p>
+    <p>离线管线：PyMuPDF 解析文字与表格 → 按公司/章节/页码切块 → BM25（字符 bigram + 英文词） + bge-small-zh-v1.5 向量 → 浏览器内混合检索。</p>
+  </div>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
