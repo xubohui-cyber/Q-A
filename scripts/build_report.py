@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def main():
-    data = json.load(open(os.path.join(ROOT, "web", "data", "eval.json"), encoding="utf-8"))
+    data = json.load(open(os.path.join(ROOT, "data", "eval.json"), encoding="utf-8"))
     questions = data["questions"]
     ok = [q for q in questions if q["verdict_class"] == "ok"]
     part = [q for q in questions if q["verdict_class"] == "part"]

@@ -1,7 +1,7 @@
-/* 用网页端同一份抽取式答案代码（web/js/answer.js）跑评测题，
+/* 用网页端同一份抽取式答案代码（js/answer.js）跑评测题，
  * 产出「系统回答」，供人工判定对错。 */
 import { readFileSync, writeFileSync } from "node:fs";
-import { composeExtractive, extractMetric, fmtYi, queryTerms } from "../web/js/answer.js";
+import { composeExtractive, extractMetric, fmtYi, queryTerms } from "../js/answer.js";
 
 const root = new URL("../", import.meta.url).pathname;
 const raw = JSON.parse(readFileSync(root + "data/out/eval_raw.json", "utf8"));

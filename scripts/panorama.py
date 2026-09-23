@@ -1,6 +1,6 @@
 """从「主要会计数据」表格块里抽出指标数值，用于跨公司对比。
 
-必须与网页端 web/js/rag.js 中的 extractMetric 保持一致。
+必须与网页端 js/rag.js 中的 extractMetric 保持一致。
 """
 
 import re

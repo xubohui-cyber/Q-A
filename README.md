@@ -58,12 +58,12 @@
   去掉只出现一次的词项后共 **91,055** 个词项，公式 `k1=1.5, b=0.75`；
 - **向量**：`BAAI/bge-small-zh-v1.5`（ONNX int8，512 维），[CLS] 池化 + L2 归一化，浏览器端用同一模型编码问题。
 
-### 5. 检索（scripts/retrieve.py ≈ web/js/rag.js）
+### 5. 检索（scripts/retrieve.py ≈ js/rag.js，两端同一套逻辑）
 - 两路分数各自 min-max 归一化后线性融合：`score = α·cos + (1−α)·BM25_norm`，默认 α=0.5；
 - 问句里出现公司名 / 年份时自动收窄到对应公司、报告期；
 - **查询改写**：口语说法映射成年报里的规范表述（归母净利润 → 归属于上市公司股东的净利润、分红 → 利润分配 派发现金红利…）；
 - **全景题**：先把问题改写成「主要会计数据 + 指标名」，全局检索后按公司分组，保证 16 家都有可比证据，
-  再用 [`web/js/answer.js`](web/js/answer.js) 的指标解析器从表里抽数排序。
+  再用 [`js/answer.js`](js/answer.js) 的指标解析器从表里抽数排序。
 
 ### 6. 答案与出处
 - 默认**抽取式答案**：从命中的原文里挑出与问题词重合度最高的句子/表格行，配 `[编号]` 出处，
@@ -110,27 +110,36 @@
 
 ## 五、目录结构
 
+仓库根目录就是网页（GitHub Pages 从 `/` 发布），其余是离线管线与评测：
+
 ```
-scripts/            离线管线（Python）+ 前端一致性/端到端校验（Node）
-  companies.py         16 家公司清单
-  cninfo.py            巨潮资讯接口客户端
-  download_reports.py  下载年报/半年报 PDF
-  extract_text.py      PDF → 文字 + 表格（行列还原）
-  chunk_reports.py     切块并打上公司/章节/页码元数据
-  build_index.py       BM25 倒排 + bge-small-zh-v1.5 向量
-  query_rewrite.py     金融口语 → 年报规范表述
-  panorama.py          全景题：从「主要会计数据」表抽指标
-  retrieve.py          混合检索（离线评测用）
-  export_web.py        导出网页数据（含 int8 向量、varint 倒排二进制）
-  eval_questions.py    跑 10 道题、记录召回、导出评测 JSON
-  eval/annotations.json 人工判定（标准答案、对错、错因）
-data/manifest.json  48 份报告的来源/链接/页数/表格数/块数
-eval/rag_eval.md    10 题逐题评测报告
-web/                静态站点
-  index.html css/ js/   前端（分词器、BM25、向量、答案组装、UI）
-  data/                 meta.json / chunks.json / bm25.bin.gz / vec.i8.bin.gz / doclen.bin / eval.json
-  model/onnx/           bge-small-zh-v1.5 int8 ONNX + tokenizer
-  vendor/ort/           onnxruntime-web（wasm 后端，按需加载）
+index.html css/ js/     前端：分词器 / BM25 / 向量 / 答案组装 / 界面
+data/                   站点数据 + 数据清单
+  meta.json               公司、报告、章节字典 + 统计
+  chunks.json             16,709 个文本块（数组紧凑存储）
+  bm25.bin.gz             BM25 倒排索引（varint 二进制）
+  vec.i8.bin.gz           int8 量化向量（16,709 × 512）
+  doclen.bin              每块词数（BM25 归一化用）
+  eval.json               10 题评测结果（网页「评测记录」标签页读取）
+  manifest.json           48 份报告的来源链接 / 页数 / 表格数 / 块数
+model/onnx/             bge-small-zh-v1.5 int8 ONNX + tokenizer
+vendor/ort/             onnxruntime-web（wasm 后端，按需加载）
+scripts/                离线管线（Python）+ 一致性/端到端校验（Node）
+  companies.py            16 家公司清单
+  cninfo.py               巨潮资讯接口客户端
+  download_reports.py     下载年报/半年报 PDF
+  extract_text.py         PDF → 文字 + 表格（行列还原）
+  chunk_reports.py        切块并打上公司/章节/页码元数据
+  build_index.py          BM25 倒排 + bge-small-zh-v1.5 向量
+  query_rewrite.py        金融口语 → 年报规范表述
+  panorama.py             全景题：从「主要会计数据」表抽指标
+  retrieve.py             混合检索（离线评测用）
+  export_web.py           导出网页数据（含 int8 向量、varint 倒排二进制）
+  eval_questions.py       跑 10 道题、记录召回、导出评测 JSON
+  build_manifest.py       生成 data/manifest.json
+  build_report.py         生成 eval/rag_eval.md
+eval/annotations.json   人工判定（标准答案、对错、错因）
+eval/rag_eval.md        10 题逐题评测报告
 ```
 
 ## 六、复现
@@ -147,10 +156,10 @@ python scripts/build_manifest.py          # 6) 生成数据清单
 
 python scripts/eval_questions.py run      # 7) 跑 10 道题
 node scripts/run_system_answers.mjs       # 8) 用网页同一份答案代码生成「系统回答」
-python scripts/eval_questions.py build    # 9) 合并人工判定 → web/data/eval.json
+python scripts/eval_questions.py build    # 9) 合并人工判定 → data/eval.json
 python scripts/build_report.py            # 10) 生成 eval/rag_eval.md
 
-cd web && python -m http.server 8000      # 11) 本地预览 http://127.0.0.1:8000/
+python -m http.server 8000                # 11) 本地预览 http://127.0.0.1:8000/
 ```
 
 ## 七、已知问题与改进方向

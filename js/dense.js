@@ -25,8 +25,8 @@ export const MODEL_SOURCES = {
   },
   cdn: {
     label: "jsDelivr CDN 加速",
-    onnx: "https://cdn.jsdelivr.net/gh/xubohui-cyber/Q-A@main/web/model/onnx/model_quantized.onnx",
-    tokenizer: "https://cdn.jsdelivr.net/gh/xubohui-cyber/Q-A@main/web/model/tokenizer.json",
+    onnx: "https://cdn.jsdelivr.net/gh/xubohui-cyber/Q-A@main/model/onnx/model_quantized.onnx",
+    tokenizer: "https://cdn.jsdelivr.net/gh/xubohui-cyber/Q-A@main/model/tokenizer.json",
   },
 };
 

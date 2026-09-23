@@ -1,9 +1,9 @@
-/* 在 Node 里直接跑网页端同一份检索代码（web/js/rag.js），
+/* 在 Node 里直接跑网页端同一份检索代码（js/rag.js），
  * 验证「网页实际取到的结果」与离线 Python 评测结果一致。
  * 需要先启动静态服务器：python -m http.server 8777（web 目录下）
  */
 import { readFileSync } from "node:fs";
-import { Rag, extractMetric, fmtYi, composeExtractive } from "../web/js/rag.js";
+import { Rag, extractMetric, fmtYi, composeExtractive } from "../js/rag.js";
 
 const BASE = process.env.WEB_BASE || "http://127.0.0.1:8777/";
 const root = new URL("../", import.meta.url).pathname;

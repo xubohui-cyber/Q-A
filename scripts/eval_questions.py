@@ -2,7 +2,7 @@
 
 用法：
     python eval_questions.py dump     # 打印每题的召回证据（人工核对用）
-    python eval_questions.py build    # 合并人工判定，输出 web/data/eval.json
+    python eval_questions.py build    # 合并人工判定，输出 data/eval.json
 """
 
 import json
@@ -17,7 +17,7 @@ from panorama import metric_of, fmt_yi  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, "data", "out", "eval_raw.json")
 CURATED = os.path.join(ROOT, "eval", "annotations.json")
-WEB_OUT = os.path.join(ROOT, "web", "data", "eval.json")
+WEB_OUT = os.path.join(ROOT, "data", "eval.json")
 
 # gold: 关键证据必须包含的片段（用于自动判定“有没有召回对”）
 QUESTIONS = [

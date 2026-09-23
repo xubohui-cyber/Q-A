@@ -1,9 +1,9 @@
 """把索引导出成网页可直接加载的静态文件。
 
-web/data/meta.json     公司 / 报告 / 章节字典 + 统计信息
-web/data/chunks.json   全部文本块（数组压缩存储，字段用下标引用字典）
-web/data/bm25.bin.gz   BM25 倒排索引（varint 二进制，前端 gzip 解压）
-web/data/vec.i8.bin.gz int8 量化向量（512 维，L2 已归一化）
+data/meta.json     公司 / 报告 / 章节字典 + 统计信息
+data/chunks.json   全部文本块（数组压缩存储，字段用下标引用字典）
+data/bm25.bin.gz   BM25 倒排索引（varint 二进制，前端 gzip 解压）
+data/vec.i8.bin.gz int8 量化向量（512 维，L2 已归一化）
 """
 
 import gzip
@@ -17,7 +17,8 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "out")
-WEB = os.path.join(ROOT, "web", "data")
+# 站点直接发布在仓库根目录（GitHub Pages 只允许从 / 或 /docs 发布）
+WEB = os.path.join(ROOT, "data")
 
 
 def put_uv(out, n):

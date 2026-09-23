@@ -1,10 +1,10 @@
 /* 校验浏览器端 tokenizer.js 与 Python tokenizers 输出逐 token 一致 */
 import { readFileSync } from "node:fs";
-import { BertTokenizer } from "../web/js/tokenizer.js";
+import { BertTokenizer } from "../js/tokenizer.js";
 
 const root = new URL("../", import.meta.url).pathname;
 const ref = JSON.parse(readFileSync(root + "data/out/tokenizer_ref.json", "utf8"));
-const tkJson = JSON.parse(readFileSync(root + "web/model/tokenizer.json", "utf8"));
+const tkJson = JSON.parse(readFileSync(root + "model/tokenizer.json", "utf8"));
 const tok = new BertTokenizer(tkJson);
 
 let bad = 0;
