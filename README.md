@@ -152,7 +152,7 @@ eval/rag_eval.md        10 题逐题评测报告
 ```bash
 pip install -r requirements.txt
 
-python scripts/download_reports.py        # 1) 下载 48 份报告 PDF（约 175MB，可重复执行）
+python scripts/download_reports.py        # 1) 下载 48 份报告 PDF（约 106MB，可重复执行）
 python scripts/extract_text.py            # 2) 解析文字与表格（多进程，约 3 分钟）
 python scripts/chunk_reports.py           # 3) 切块 → data/out/chunks.jsonl
 python scripts/build_index.py             # 4) BM25 + 向量（CPU 上约 8 分钟）
