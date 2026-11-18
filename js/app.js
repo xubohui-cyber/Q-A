@@ -334,16 +334,21 @@ async function renderEval() {
   if (host.dataset.done) return;
   try {
     const data = await (await fetch(new URL("../data/eval.json", import.meta.url))).json();
-    const ok = data.questions.filter((q) => q.verdict === "正确").length;
-    const part = data.questions.filter((q) => q.verdict === "部分正确").length;
-    const recalled = data.questions.filter((q) => q.gold_recalled).length;
+    const summ = data.summary || {};
+    const rec = summ.recall || {};
+    const cov = summ.coverage || {};
+    const ok = summ.correct ?? data.questions.filter((q) => (q.verdict_class || "") === "ok").length;
+    const part = summ.partial ?? data.questions.filter((q) => q.verdict_class === "part").length;
+    const wrong = summ.wrong ?? data.questions.filter((q) => q.verdict_class === "bad").length;
     $("#evalSummary").innerHTML = `
       <div class="m"><b>${data.questions.length}</b><span>道题</span></div>
-      <div class="m"><b>${recalled}/${data.questions.length}</b><span>关键证据被召回</span></div>
-      <div class="m"><b>${ok}</b><span>完全正确</span></div>
+      <div class="m"><b>${rec.hits ?? "–"}/${rec.total ?? "–"}</b><span>关键事实召回（Top-8）</span></div>
+      <div class="m"><b>${cov.hits ?? "–"}/${cov.total ?? "–"}</b><span>作答证据覆盖</span></div>
+      <div class="m"><b>${ok}</b><span>答案完全正确</span></div>
       <div class="m"><b>${part}</b><span>部分正确</span></div>
+      <div class="m"><b>${wrong}</b><span>错误</span></div>
       <div class="m"><b>${data.questions.filter((q) => q.panorama).length}</b><span>跨公司全景题</span></div>
-      <div class="m"><b>${data.retriever || "BM25 + 向量"}</b><span>检索配置</span></div>`;
+      <div class="m"><b>${rec.rate != null ? Math.round(rec.rate * 100) + "%" : "–"}</b><span>召回率</span></div>`;
     host.innerHTML = data.questions
       .map((q, i) => {
         const cls = q.verdict_class || (q.verdict.startsWith("正确") ? "ok" : q.verdict.startsWith("部分") ? "part" : "bad");
@@ -363,6 +368,9 @@ async function renderEval() {
             ${q.panorama ? '<span class="verdict part">跨公司</span>' : ""}</h3>
           <div class="meta"><b>标准答案：</b>${escapeHtml(q.expected)}</div>
           <div class="meta"><b>系统回答：</b>${escapeHtml(q.answer)}</div>
+          <div class="meta"><b>三指标：</b>召回 ${q.recall?.hits ?? "–"}/${q.recall?.total ?? "–"}
+            · 覆盖 ${q.coverage?.hits ?? "–"}/${q.coverage?.total ?? "–"}
+            · 答案 <b>${escapeHtml(q.verdict)}</b></div>
           <div class="meta"><b>判定：</b>${escapeHtml(q.analysis)}</div>
           ${q.facts && q.facts.length ? `<div class="meta"><b>关键事实召回：</b>${q.facts
             .map((f) =>
