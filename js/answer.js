@@ -9,7 +9,8 @@ export function queryTerms(query) {
 }
 
 /** 从块里挑出与问题最相关的行（抽取式答案的要点来源） */
-export function keyLines(text, terms, limit = 3) {
+export function keyLines(text, terms, limit = 3, queryText = "") {
+  const preferNonDeduct = !/扣非|扣除非经常性损益/.test(queryText);
   const lines = text
     .split("\n")
     .map((l) => l.trim())
@@ -18,7 +19,10 @@ export function keyLines(text, terms, limit = 3) {
     const lt = new Set(tokenize(l));
     let hit = 0;
     for (const t of terms) if (lt.has(t)) hit += 1;
-    return { line: l, hit, len: l.length };
+    // 问「净利润」时，扣非净利润行会因字面更接近而抢占；这里按问句意图压一档
+    // PDF 抽取常在词中插入空格（如「扣除非 经常性损益」），先压缩空白再判断
+    const penalty = preferNonDeduct && l.replace(/\s+/g, "").includes("扣除非经常性损益") ? 3 : 0;
+    return { line: l, hit: hit - penalty, len: l.length };
   });
   scored.sort((a, b) => b.hit * 1000 + Math.min(b.len, 300) - (a.hit * 1000 + Math.min(a.len, 300)));
   return scored.filter((s) => s.hit > 0).slice(0, limit).map((s) => s.line);
@@ -52,18 +56,40 @@ export function highlight(text, terms) {
   return out;
 }
 
+/** 把 Markdown 表格行转成「列名：值」的可读句子（答案要点用，不直接暴露竖线） */
+export function tableRowToText(chunkText, rowLine) {
+  const lines = chunkText.split("\n").map((l) => l.trim());
+  const idx = lines.indexOf(rowLine.trim());
+  if (idx < 0) return rowLine;
+  let start = idx;
+  while (start > 0 && lines[start - 1].startsWith("|")) start -= 1;
+  const split = (l) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  const header = lines[start] && lines[start].startsWith("|") ? split(lines[start]) : [];
+  const NOISE = new Set(["主要会计数据", "项目", "科目", "主要财务指标"]);
+  const row = split(lines[idx]);
+  if (!header.length || /^-+$/.test((header[0] || "").replace(/[|:\-\s]/g, ""))) return rowLine;
+  const parts = [];
+  row.forEach((v, i) => {
+    if (!v) return;
+    const h = header[i] && header[i] !== v && !NOISE.has(header[i]) ? header[i] : "";
+    parts.push(h ? `${h}：${v}` : v);
+  });
+  return parts.join("；").slice(0, 240);
+}
+
 /** 抽取式答案：直接从检索到的原文里挑要点，并标注出处编号 */
 export function composeExtractive(query, results, limit = 3) {
   const terms = queryTerms(query);
   const bullets = [];
   for (const c of results.slice(0, limit)) {
-    const lines = keyLines(c.text, terms, 2);
+    const lines = keyLines(c.text, terms, 2, query);
     if (!lines.length && c.type === "table") {
       const rows = c.text.split("\n").filter((l) => l.trim().startsWith("|"));
       if (rows.length) lines.push(rows.slice(0, 2).join(" "));
     }
     if (!lines.length) lines.push(c.text.split("\n")[0]);
-    bullets.push({ citation: c.rank, chunk: c, text: lines.join("；").slice(0, 220) });
+    const readable = lines.map((l) => (l.trim().startsWith("|") ? tableRowToText(c.text, l) : l));
+    bullets.push({ citation: c.rank, chunk: c, text: readable.join("；").slice(0, 240) });
   }
   return bullets;
 }

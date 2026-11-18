@@ -15,24 +15,36 @@ def main():
     bad = [q for q in questions if q["verdict_class"] == "bad"]
     recalled = [q for q in questions if q["gold_recalled"]]
     panorama = [q for q in questions if q["panorama"]]
+    summ = data.get("summary", {})
+    rec = summ.get("recall", {})
+    cov = summ.get("coverage", {})
 
     L = []
     L.append("# 白酒行业年报问答：10 题逐题评测记录\n")
     L.append(f"检索配置：{data['retriever']}；语料为 16 家白酒上市公司 48 份年报/半年报"
              "（8,254 页，12,241 张表，16,709 个文本块）。\n")
+    L.append("按课程要求把评价拆成三个独立指标：**召回**（关键事实/公司是否进 Top-K）、"
+             "**覆盖**（真正用于作答的证据覆盖了多少事实）、**答案正确**（人工核对口径与出处后的判定）。\n")
+    L.append("| 指标 | 结果 |\n| --- | --- |")
+    L.append(f"| 召回率（Top-8） | {rec.get('hits')}/{rec.get('total')} = {rec.get('rate', 0)*100:.0f}% |")
+    L.append(f"| 覆盖度（作答证据） | {cov.get('hits')}/{cov.get('total')} = {cov.get('rate', 0)*100:.0f}% |")
+    L.append(f"| 答案正确 | {summ.get('correct', 0)} 正确 / {summ.get('partial', 0)} 部分 / "
+             f"{summ.get('wrong', 0)} 错误（共 {summ.get('questions', len(questions))} 题） |")
+    L.append("")
     L.append("| 指标 | 结果 |\n| --- | --- |")
     L.append(f"| 题量 | {len(questions)} 题（含 3 道跨公司全景题、1 道语料外拒答题） |")
-    L.append(f"| 关键证据被召回 | {len(recalled)}/{len(questions)} |")
-    L.append(f"| 回答完全正确 | {len(ok)} |")
-    L.append(f"| 部分正确 | {len(part)} |")
-    L.append(f"| 错误 | {len(bad)} |")
+    L.append(f"| 关键证据被召回（题级） | {len(recalled)}/{len(questions)} |")
+    L.append(f"| 题级 | 正确 {len(ok)} / 部分 {len(part)} / 错误 {len(bad)} |")
     L.append("")
     L.append("## 结果一览\n")
-    L.append("| # | 题目 | 类型 | 关键证据最高名次 | 判定 |\n| --- | --- | --- | --- | --- |")
+    L.append("| # | 题目 | 类型 | 召回 | 覆盖 | 答案正确 |\n| --- | --- | --- | --- | --- | --- |")
     for i, q in enumerate(questions, 1):
         kind = "跨公司全景" if q["panorama"] else ("语料外" if q["extra"] else "单公司")
-        rank = "—" if q["gold_rank"] is None else f"第 {q['gold_rank']} 位"
-        L.append(f"| Q{i} | {q['question']} | {kind} | {rank} | {q['verdict']} |")
+        r = q.get("recall", {})
+        c2 = q.get("coverage", {})
+        rtxt = f"{r.get('hits')}/{r.get('total')}" + (f"（最高第 {q['gold_rank']} 位）" if q.get("gold_rank") else "")
+        ctxt = f"{c2.get('hits')}/{c2.get('total')}"
+        L.append(f"| Q{i} | {q['question']} | {kind} | {rtxt} | {ctxt} | {q['verdict']} |")
     L.append("")
     L.append("## 逐题记录\n")
 

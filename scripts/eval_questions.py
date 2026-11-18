@@ -130,6 +130,16 @@ EXTRA = {
 }
 
 
+def _norm(s):
+    """去掉所有空白后再匹配：PDF 常在词中插空格/换行（如「归属于上市公司股东\\n的净利润」）。"""
+    return re.sub(r"\s+", "", s or "")
+
+
+def contains_any(text, patterns):
+    t = _norm(text)
+    return any(_norm(p) in t for p in patterns)
+
+
 def run(mode="hybrid"):
     r = Retriever()
     out = []
@@ -152,9 +162,12 @@ def run(mode="hybrid"):
         if spec["panorama"]:
             groups = res["groups"]
             for f in facts:
+                mk = "profit" if "净利" in f["name"] else ("revenue" if "营业" in f["name"] else None)
                 hit = [
                     code for code, g in groups.items()
-                    if any(any(s in c["text"] for s in f["any_of"]) for c in g["results"])
+                    if any(contains_any(c["text"], f["any_of"]) for c in g["results"])
+                    # 表头被 PDF 拆成两行时字面匹配会漏；Top-1 能解析出该指标也算召回
+                    or (mk and metric_of(g["results"][0]["text"], mk))
                 ]
                 f["hit_rank"] = None
                 f["companies_hit"] = len(hit)
@@ -168,7 +181,7 @@ def run(mode="hybrid"):
                         continue
                     if gold.get("period") and gold["period"] not in c["period"]:
                         continue
-                    if any(s in c["text"] for s in f["any_of"]):
+                    if contains_any(c["text"], f["any_of"]):
                         f["hit_rank"], f["recalled"] = i, True
                         break
         recalled = all(f["recalled"] for f in facts)
@@ -209,7 +222,7 @@ def run(mode="hybrid"):
                     "gold": bool(
                         (not gold.get("code") or c["code"] == gold["code"])
                         and (not gold.get("period") or gold["period"] in c["period"])
-                        and any(s in c["text"] for f in facts for s in f["any_of"])
+                        and any(contains_any(c["text"], f["any_of"]) for f in facts)
                     ),
                     "text": c["text"][:2500],
                 }
@@ -286,6 +299,23 @@ def build():
             vclass = "part"
         else:
             vclass = "bad"
+
+        # ---- 三个指标分开评价 ----
+        # 召回：关键事实是否进入 Top-K（全景题：是否 16 家公司全覆盖）
+        facts = q.get("facts", [])
+        recall_hit = sum(1 for f in facts if f.get("recalled"))
+        recall_total = len(facts)
+        # 覆盖：真正用于作答的证据（单公司=前 3 条；全景=各公司解析出的指标）覆盖了多少
+        if q["panorama"]:
+            rows = q.get("panorama_table") or []
+            cov_hit = sum(1 for r in rows if r.get("revenue") is not None and r.get("profit") is not None)
+            cov_total = len(rows)
+            cov_note = "16 家公司中同时解析出营业收入与归母净利润的家数"
+        else:
+            answer_text = "\n".join(r["text"][:2500] for r in q["retrieved"][:3])
+            cov_hit = sum(1 for f in facts if contains_any(answer_text, f["any_of"]))
+            cov_total = len(facts)
+            cov_note = "回答实际使用的 Top-3 证据覆盖的关键事实数"
         out.append({
             "id": q["id"],
             "question": q["question"],
@@ -298,6 +328,11 @@ def build():
             "analysis": c.get("analysis", ""),
             "gold_recalled": q["gold_recalled"],
             "gold_rank": q["gold_rank"],
+            "recall": {"hits": recall_hit, "total": recall_total,
+                       "rate": round(recall_hit / recall_total, 3) if recall_total else None},
+            "coverage": {"hits": cov_hit, "total": cov_total,
+                         "rate": round(cov_hit / cov_total, 3) if cov_total else None,
+                         "note": cov_note},
             "facts": q.get("facts", []),
             "retrieved": [
                 {k: v for k, v in r.items() if k != "text"}
@@ -307,7 +342,22 @@ def build():
         })
     payload = {
         "retriever": "BM25(字符 bigram) + bge-small-zh-v1.5 向量，α=0.5，Top-8",
+        "metrics": {
+            "recall": "关键事实是否在 Top-K 中召回（全景题=16 家公司是否都有证据）；分母为关键事实数/公司数",
+            "coverage": "真正用于作答的证据覆盖了多少关键事实（单公司取前 3 条；全景题取各公司解析出的指标）",
+            "correctness": "人工逐题核对口径与出处后的最终答案判定",
+        },
         "questions": out,
+    }
+    rr = sum(x["recall"]["hits"] for x in out), sum(x["recall"]["total"] for x in out)
+    cc = sum(x["coverage"]["hits"] for x in out), sum(x["coverage"]["total"] for x in out)
+    payload["summary"] = {
+        "recall": {"hits": rr[0], "total": rr[1], "rate": round(rr[0] / rr[1], 3)},
+        "coverage": {"hits": cc[0], "total": cc[1], "rate": round(cc[0] / cc[1], 3)},
+        "correct": sum(1 for x in out if x["verdict_class"] == "ok"),
+        "partial": sum(1 for x in out if x["verdict_class"] == "part"),
+        "wrong": sum(1 for x in out if x["verdict_class"] == "bad"),
+        "questions": len(out),
     }
     os.makedirs(os.path.dirname(WEB_OUT), exist_ok=True)
     json.dump(payload, open(WEB_OUT, "w", encoding="utf-8"),
