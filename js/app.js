@@ -256,7 +256,8 @@ function renderChunkBody(text, terms) {
 function renderPanorama(query, out, ms) {
   const terms = queryTerms(query);
   const wantsProfit = query.includes("净利润");
-  const wantsGrowth = /增速|增长|下滑|下降|最高/.test(query);
+  // 只有问「增速/增长/下滑」才按同比排序；「营业收入最高」应按金额降序
+  const wantsGrowth = /增速|同比增长|下滑|下降/.test(query);
   const rows = out.groups.map((g) => {
     const text = g.results.map((c) => c.text).join("\n");
     const rev = extractMetric(text, "revenue");
@@ -264,8 +265,9 @@ function renderPanorama(query, out, ms) {
     const pick = wantsProfit ? pro : rev;
     const other = wantsProfit ? rev : pro;
     const yoy = pick?.yoy ?? (pick && pick.prev ? (pick.now / pick.prev - 1) * 100 : null);
-    const best = g.results[0];
-    const src = best;
+    // 出处要指向「真正解析出该指标的那一块」，而不是该公司排名第一的块
+    const metricKey = wantsProfit ? "profit" : "revenue";
+    const src = g.results.find((c) => extractMetric(c.text, metricKey)) || g.results[0];
     return {
       company: g.company,
       value: pick ? pick.now : null,
